@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extension Icon Maker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* CSS変数の定義（ブルー基調のカラーパレット） */
+        :root {
+            --primary-color: #0ea5e9;
+            --primary-gradient: linear-gradient(135deg, #0284c7, #38bdf8);
+            --bg-color: #f0f9ff;
+            --card-bg: #ffffff;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --shadow-sm: 0 4px 6px rgba(2, 132, 199, 0.05);
+            --shadow-md: 0 10px 25px rgba(2, 132, 199, 0.15);
+            --border-radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* メインのカードUI */
+        .app-container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 420px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .app-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .app-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        /* タブ切り替え */
+        .tabs {
+            display: flex;
+            background: #e2e8f0;
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px 0;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* プレビューエリア */
+        .preview-area {
+            margin-bottom: 25px;
+        }
+        
+        .preview-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* キャンバス（128x128）を少し浮かせる */
+        #previewCanvas {
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            background-color: #f8fafc;
+            width: 128px;
+            height: 128px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* コントロールパネル */
+        .control-panel {
+            display: none;
+            text-align: left;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .control-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .input-group input[type="text"],
+        .input-group input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input[type="text"]:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* カラーピッカーの装飾 */
+        .color-row {
+            display: flex;
+            gap: 15px;
+        }
+        .color-group {
+            flex: 1;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 100%;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 0;
+            background: none;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        /* スライダーの装飾 */
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary-color);
+        }
+
+        /* 画像アップロード用のカスタムスタイル */
+        .file-upload-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        .file-upload-btn {
+            border: 2px dashed #cbd5e1;
+            color: var(--text-muted);
+            background-color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .file-upload-wrapper:hover .file-upload-btn {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            background-color: #f0f9ff;
+        }
+        .file-upload-wrapper input[type="file"] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+        }
+
+        /* ダウンロードボタン */
+        .download-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-gradient);
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(2, 132, 199, 0.25);
+        }
+        .download-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="app-title">Icon Generator</div>
+    <div class="app-subtitle">拡張機能用アイコン(128/48/16px)を一括生成</div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-target="text-panel">テキストで作成</button>
+        <button class="tab-btn" data-target="image-panel">画像から作成</button>
+    </div>
+
+    <div class="preview-area">
+        <span class="preview-label">プレビュー (128x128)</span>
+        <canvas id="previewCanvas" width="128" height="128"></canvas>
+    </div>
+
+    <div id="text-panel" class="control-panel active">
+        <div class="color-row input-group">
+            <div class="color-group">
+                <label>背景色</label>
+                <input type="color" id="bgColor" value="#0ea5e9">
+            </div>
+            <div class="color-group">
+                <label>文字色</label>
+                <input type="color" id="textColor" value="#ffffff">
+            </div>
+        </div>
+        <div class="input-group">
+            <label>アイコン文字 (1〜2文字推奨)</label>
+            <input type="text" id="iconText" value="EX" maxlength="4">
+        </div>
+        <div class="input-group">
+            <label>文字サイズ</label>
+            <input type="range" id="textSize" min="20" max="100" value="64">
+        </div>
+    </div>
+
+    <div id="image-panel" class="control-panel">
+        <div class="input-group">
+            <label>画像を選択 (自動で中央を正方形に切り抜きます)</label>
+            <div class="file-upload-wrapper">
+                <div class="file-upload-btn">
+                    <span id="fileNameDisplay">+ クリックして画像を選択</span>
+                </div>
+                <input type="file" id="imageInput" accept="image/*">
+            </div>
+        </div>
+    </div>
+
+    <button class="download-btn" id="downloadBtn">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        icons.zip をダウンロード
+    </button>
+</div>
+
+<script>
+    // DOM要素の取得
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.control-panel');
+    
+    // 入力要素（テキスト）
+    const bgColorInput = document.getElementById('bgColor');
+    const textColorInput = document.getElementById('textColor');
+    const iconTextInput = document.getElementById('iconText');
+    const textSizeInput = document.getElementById('textSize');
+    
+    // 入力要素（画像）
+    const imageInput = document.getElementById('imageInput');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    
+    // 状態管理
+    let currentMode = 'text'; // 'text' or 'image'
+    let uploadedImage = null;
+
+    // 初期描画
+    drawPreview();
+
+    // タブ切り替えイベント
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            panels.forEach(p => p.classList.remove('active'));
+            
+            btn.classList.add('active');
+            const targetId = btn.getAttribute('data-target');
+            document.getElementById(targetId).classList.add('active');
+            
+            currentMode = targetId === 'text-panel' ? 'text' : 'image';
+            drawPreview();
+        });
+    });
+
+    // テキスト設定変更イベント
+    [bgColorInput, textColorInput, iconTextInput, textSizeInput].forEach(input => {
+        input.addEventListener('input', () => {
+            if (currentMode === 'text') drawPreview();
+        });
+    });
+
+    // 画像アップロードイベント
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            fileNameDisplay.textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    uploadedImage = img;
+                    if (currentMode === 'image') drawPreview();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 描画メイン関数
+    function drawCanvas(targetCanvas, size) {
+        const context = targetCanvas.getContext('2d');
+        
+        // クリア
+        context.clearRect(0, 0, size, size);
+
+        if (currentMode === 'text') {
+            // 背景描画
+            context.fillStyle = bgColorInput.value;
+            context.fillRect(0, 0, size, size);
+
+            // テキスト描画
+            const text = iconTextInput.value;
+            // キャンバスサイズに対する文字サイズの比率を計算
+            const baseSize = parseInt(textSizeInput.value);
+            const scale = size / 128; 
+            const scaledFontSize = baseSize * scale;
+
+            context.fillStyle = textColorInput.value;
+            context.font = `bold ${scaledFontSize}px sans-serif`;
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, size / 2, size / 2);
+
+        } else if (currentMode === 'image') {
+            if (uploadedImage) {
+                // 画像を正方形にクロップして描画
+                const imgSize = Math.min(uploadedImage.width, uploadedImage.height);
+                const sx = (uploadedImage.width - imgSize) / 2;
+                const sy = (uploadedImage.height - imgSize) / 2;
+                
+                context.drawImage(uploadedImage, sx, sy, imgSize, imgSize, 0, 0, size, size);
+            } else {
+                // 画像未選択時のプレースホルダー
+                context.fillStyle = '#e2e8f0';
+                context.fillRect(0, 0, size, size);
+                context.fillStyle = '#94a3b8';
+                const fontSize = 16 * (size / 128);
+                context.font = `${fontSize}px sans-serif`;
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.fillText('No Image', size / 2, size / 2);
+            }
+        }
+    }
+
+    // プレビューの更新
+    function drawPreview() {
+        drawCanvas(canvas, 128);
+    }
+
+    // ZIPダウンロード処理
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        if (currentMode === 'image' && !uploadedImage) {
+            alert('画像をアップロードしてください。');
+            return;
+        }
+
+        const zip = new JSZip();
+        const sizes = [128, 48, 16];
+        
+        // 非表示のキャンバスを使って各サイズを生成
+        const tempCanvas = document.createElement('canvas');
+
+        sizes.forEach(size => {
+            tempCanvas.width = size;
+            tempCanvas.height = size;
+            drawCanvas(tempCanvas, size);
+            
+            // base64データURLを取得し、プレフィックスを削除してZIPに追加
+            const dataUrl = tempCanvas.toDataURL('image/png');
+            const base64Data = dataUrl.split(',')[1];
+            zip.file(`icon_${size}.png`, base64Data, {base64: true});
+        });
+
+        // ZIPを生成してダウンロード
+        zip.generateAsync({type: "blob"}).then(function(content) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = "icons.zip";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    });
+</script>
+
+</body>
+</html>
