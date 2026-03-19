@@ -105,7 +105,7 @@
         #previewCanvas {
             border-radius: 12px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            background-color: #f8fafc;
+            background-color: transparent;
             width: 128px;
             height: 128px;
             display: block;
@@ -159,6 +159,7 @@
         .color-row {
             display: flex;
             gap: 15px;
+            align-items: center;
         }
         .color-group {
             flex: 1;
@@ -185,6 +186,32 @@
         input[type="range"] {
             width: 100%;
             accent-color: var(--primary-color);
+        }
+        
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .slider-group {
+            flex: 1;
+        }
+
+        /* チェックボックスの装飾 */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            margin-top: -5px;
+            margin-bottom: 15px;
+        }
+        .toggle-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: normal;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
         }
 
         /* 画像アップロード用のカスタムスタイル */
@@ -247,6 +274,14 @@
         .download-btn:active {
             transform: translateY(0);
         }
+        
+        #previewContainer {
+            background-color: rgba(2, 132, 199, 0.05); /* 透過のわかりやすさのために */
+            padding: 10px;
+            border-radius: 12px;
+            width: fit-content;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body>
@@ -262,27 +297,72 @@
 
     <div class="preview-area">
         <span class="preview-label">プレビュー (128x128)</span>
-        <canvas id="previewCanvas" width="128" height="128"></canvas>
+        <div id="previewContainer">
+            <canvas id="previewCanvas" width="128" height="128"></canvas>
+        </div>
     </div>
 
     <div id="text-panel" class="control-panel active">
+        <div class="toggle-group">
+            <label><input type="checkbox" id="transparentBg">背景を透過</label>
+        </div>
+        
         <div class="color-row input-group">
             <div class="color-group">
                 <label>背景色</label>
-                <input type="color" id="bgColor" value="#0ea5e9">
+                <input type="color" id="bgColor" value="#204396">
             </div>
             <div class="color-group">
                 <label>文字色</label>
                 <input type="color" id="textColor" value="#ffffff">
             </div>
         </div>
+        
+        <div class="gradient-controls input-group">
+            <div class="toggle-group">
+                <label><input type="checkbox" id="useGradient">グラデーション</label>
+            </div>
+            <div id="gradientSettings" style="display: none; padding-left: 20px;">
+                <div class="color-row">
+                    <div class="color-group">
+                        <label>終了色</label>
+                        <input type="color" id="bgColor2" value="#0284c7">
+                    </div>
+                    <div class="slider-group">
+                        <label>角度 (0-360)</label>
+                        <input type="range" id="gradientAngle" min="0" max="360" value="135">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="border-controls input-group">
+            <div class="toggle-group">
+                <label><input type="checkbox" id="useBorder">枠を追加</label>
+            </div>
+            <div id="borderSettings" style="display: none; padding-left: 20px;">
+                <div class="color-row">
+                    <div class="color-group">
+                        <label>枠の色</label>
+                        <input type="color" id="borderColor" value="#0ea5e9">
+                    </div>
+                    <div class="slider-group">
+                        <label>幅 (1-10)</label>
+                        <input type="range" id="borderWidth" min="1" max="10" value="2">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="input-group">
-            <label>アイコン文字 (1〜2文字推奨)</label>
-            <input type="text" id="iconText" value="EX" maxlength="4">
+            <label>アイコン文字 (6文字まで)</label>
+            <input type="text" id="iconText" value="EX" maxlength="6">
         </div>
         <div class="input-group">
             <label>文字サイズ</label>
-            <input type="range" id="textSize" min="20" max="100" value="64">
+            <div class="slider-row">
+                <input type="range" id="textSize" min="20" max="100" value="64">
+            </div>
         </div>
     </div>
 
@@ -312,10 +392,23 @@
     const panels = document.querySelectorAll('.control-panel');
     
     // 入力要素（テキスト）
+    const transparentBgInput = document.getElementById('transparentBg');
     const bgColorInput = document.getElementById('bgColor');
     const textColorInput = document.getElementById('textColor');
     const iconTextInput = document.getElementById('iconText');
     const textSizeInput = document.getElementById('textSize');
+    
+    // グラデーション設定
+    const useGradientInput = document.getElementById('useGradient');
+    const gradientSettings = document.getElementById('gradientSettings');
+    const bgColor2Input = document.getElementById('bgColor2');
+    const gradientAngleInput = document.getElementById('gradientAngle');
+    
+    // 枠設定
+    const useBorderInput = document.getElementById('useBorder');
+    const borderSettings = document.getElementById('borderSettings');
+    const borderColorInput = document.getElementById('borderColor');
+    const borderWidthInput = document.getElementById('borderWidth');
     
     // 入力要素（画像）
     const imageInput = document.getElementById('imageInput');
@@ -344,10 +437,25 @@
     });
 
     // テキスト設定変更イベント
-    [bgColorInput, textColorInput, iconTextInput, textSizeInput].forEach(input => {
+    const textControls = [
+        transparentBgInput, bgColorInput, textColorInput, iconTextInput, textSizeInput,
+        useGradientInput, bgColor2Input, gradientAngleInput,
+        useBorderInput, borderColorInput, borderWidthInput
+    ];
+    textControls.forEach(input => {
         input.addEventListener('input', () => {
             if (currentMode === 'text') drawPreview();
         });
+    });
+    
+    // グラデーション/枠の設定表示切り替え
+    useGradientInput.addEventListener('change', () => {
+        gradientSettings.style.display = useGradientInput.checked ? 'block' : 'none';
+        if (currentMode === 'text') drawPreview();
+    });
+    useBorderInput.addEventListener('change', () => {
+        borderSettings.style.display = useBorderInput.checked ? 'block' : 'none';
+        if (currentMode === 'text') drawPreview();
     });
 
     // 画像アップロードイベント
@@ -371,27 +479,67 @@
     // 描画メイン関数
     function drawCanvas(targetCanvas, size) {
         const context = targetCanvas.getContext('2d');
-        
+        const scale = size / 128; // キャンバスサイズに応じたスケーリング係数
+
         // クリア
         context.clearRect(0, 0, size, size);
 
         if (currentMode === 'text') {
-            // 背景描画
-            context.fillStyle = bgColorInput.value;
-            context.fillRect(0, 0, size, size);
+            const isTransparent = transparentBgInput.checked;
+            const useGradient = useGradientInput.checked;
+            const useBorder = useBorderInput.checked;
+
+            // 背景描画（透過でない場合）
+            if (!isTransparent) {
+                if (useGradient) {
+                    const angleRad = gradientAngleInput.value * (Math.PI / 180);
+                    const r = size / 2;
+                    const cx = size / 2;
+                    const cy = size / 2;
+                    // 角度からグラデーションの開始点・終了点を計算
+                    const x0 = cx - r * Math.cos(angleRad);
+                    const y0 = cy + r * Math.sin(angleRad);
+                    const x1 = cx + r * Math.cos(angleRad);
+                    const y1 = cy - r * Math.sin(angleRad);
+
+                    const gradient = context.createLinearGradient(x0, y0, x1, y1);
+                    gradient.addColorStop(0, bgColorInput.value);
+                    gradient.addColorStop(1, bgColor2Input.value);
+                    context.fillStyle = gradient;
+                    context.fillRect(0, 0, size, size);
+                } else {
+                    context.fillStyle = bgColorInput.value;
+                    context.fillRect(0, 0, size, size);
+                }
+            }
 
             // テキスト描画
             const text = iconTextInput.value;
-            // キャンバスサイズに対する文字サイズの比率を計算
-            const baseSize = parseInt(textSizeInput.value);
-            const scale = size / 128; 
-            const scaledFontSize = baseSize * scale;
-
             context.fillStyle = textColorInput.value;
-            context.font = `bold ${scaledFontSize}px sans-serif`;
             context.textAlign = 'center';
             context.textBaseline = 'middle';
+            context.font = 'bold 0px sans-serif'; // フォントサイズの初期化
+
+            // フォントサイズの動的調整ロジック
+            const maxFontSize = parseInt(textSizeInput.value);
+            const maxWidth = size * 0.9; // テキスト幅をアイコン幅の90%までに制限
+
+            let fontSize = maxFontSize;
+            context.font = `bold ${fontSize * scale}px sans-serif`;
+            while (context.measureText(text).width > maxWidth && fontSize > 10) {
+                fontSize--;
+                context.font = `bold ${fontSize * scale}px sans-serif`;
+            }
+
             context.fillText(text, size / 2, size / 2);
+
+            // 枠描画
+            if (useBorder) {
+                context.strokeStyle = borderColorInput.value;
+                const width = parseInt(borderWidthInput.value) * scale;
+                context.lineWidth = width;
+                context.strokeRect(width/2, width/2, size - width, size - width); // 枠が内側に収まるように
+            }
 
         } else if (currentMode === 'image') {
             if (uploadedImage) {
@@ -406,8 +554,8 @@
                 context.fillStyle = '#e2e8f0';
                 context.fillRect(0, 0, size, size);
                 context.fillStyle = '#94a3b8';
-                const fontSize = 16 * (size / 128);
-                context.font = `${fontSize}px sans-serif`;
+                const placeholderFontSize = 16 * scale;
+                context.font = `${placeholderFontSize}px sans-serif`;
                 context.textAlign = 'center';
                 context.textBaseline = 'middle';
                 context.fillText('No Image', size / 2, size / 2);
