@@ -62,6 +62,70 @@
             margin-bottom: 20px;
         }
 
+        /* プレビューエリア */
+        .preview-area {
+            margin-bottom: 15px;
+        }
+        
+        .preview-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* キャンバスコンテナ */
+        #previewContainer {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 10px 10px;
+            background-color: rgba(2, 132, 199, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            width: fit-content;
+            margin: 0 auto;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        #previewCanvas {
+            border-radius: 0; /* キャンバス自体の角丸はJSで描画制御するため不要 */
+            background-color: transparent;
+            width: 128px;
+            height: 128px;
+            display: block;
+            margin: 0 auto;
+            /* わずかなドロップシャドウをキャンバス要素自体にかける */
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+        }
+
+        /* 共通設定（角丸）パネル */
+        .shape-control {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .shape-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .shape-header label {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            font-weight: bold;
+        }
+
+        .shape-value {
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
         /* タブ切り替え */
         .tabs {
             display: flex;
@@ -87,29 +151,6 @@
             background: var(--card-bg);
             color: var(--primary-color);
             box-shadow: var(--shadow-sm);
-        }
-
-        /* プレビューエリア */
-        .preview-area {
-            margin-bottom: 25px;
-        }
-        
-        .preview-label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        /* キャンバス（128x128）を少し浮かせる */
-        #previewCanvas {
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            background-color: transparent;
-            width: 128px;
-            height: 128px;
-            display: block;
-            margin: 0 auto;
         }
 
         /* コントロールパネル */
@@ -140,8 +181,7 @@
             font-weight: bold;
         }
 
-        .input-group input[type="text"],
-        .input-group input[type="file"] {
+        .input-group input[type="text"] {
             width: 100%;
             padding: 10px;
             border: 1px solid #cbd5e1;
@@ -155,7 +195,7 @@
             border-color: var(--primary-color);
         }
 
-        /* カラーピッカーの装飾 */
+        /* カラーピッカー */
         .color-row {
             display: flex;
             gap: 15px;
@@ -182,7 +222,7 @@
             border-radius: 8px;
         }
 
-        /* スライダーの装飾 */
+        /* スライダー */
         input[type="range"] {
             width: 100%;
             accent-color: var(--primary-color);
@@ -197,7 +237,15 @@
             flex: 1;
         }
 
-        /* チェックボックスの装飾 */
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
+
+        /* チェックボックス */
         .toggle-group {
             display: flex;
             align-items: center;
@@ -214,7 +262,7 @@
             cursor: pointer;
         }
 
-        /* 画像アップロード用のカスタムスタイル */
+        /* 画像アップロード */
         .file-upload-wrapper {
             position: relative;
             overflow: hidden;
@@ -274,14 +322,6 @@
         .download-btn:active {
             transform: translateY(0);
         }
-        
-        #previewContainer {
-            background-color: rgba(2, 132, 199, 0.05); /* 透過のわかりやすさのために */
-            padding: 10px;
-            border-radius: 12px;
-            width: fit-content;
-            margin: 0 auto;
-        }
     </style>
 </head>
 <body>
@@ -290,16 +330,28 @@
     <div class="app-title">Icon Generator</div>
     <div class="app-subtitle">拡張機能用アイコン(128/48/16px)を一括生成</div>
 
-    <div class="tabs">
-        <button class="tab-btn active" data-target="text-panel">テキストで作成</button>
-        <button class="tab-btn" data-target="image-panel">画像から作成</button>
-    </div>
-
     <div class="preview-area">
         <span class="preview-label">プレビュー (128x128)</span>
         <div id="previewContainer">
             <canvas id="previewCanvas" width="128" height="128"></canvas>
         </div>
+    </div>
+
+    <div class="shape-control">
+        <div class="shape-header">
+            <label>アイコンの形（角丸）</label>
+            <span class="shape-value" id="radiusValueDisplay">15%</span>
+        </div>
+        <input type="range" id="cornerRadius" min="0" max="50" value="15">
+        <div class="slider-labels">
+            <span>四角 (0%)</span>
+            <span>丸 (50%)</span>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-target="text-panel">テキストで作成</button>
+        <button class="tab-btn" data-target="image-panel">画像から作成</button>
     </div>
 
     <div id="text-panel" class="control-panel active">
@@ -368,7 +420,7 @@
 
     <div id="image-panel" class="control-panel">
         <div class="input-group">
-            <label>画像を選択 (自動で中央を正方形に切り抜きます)</label>
+            <label>画像を選択 (設定した角丸で切り抜かれます)</label>
             <div class="file-upload-wrapper">
                 <div class="file-upload-btn">
                     <span id="fileNameDisplay">+ クリックして画像を選択</span>
@@ -391,6 +443,10 @@
     const tabBtns = document.querySelectorAll('.tab-btn');
     const panels = document.querySelectorAll('.control-panel');
     
+    // 共通設定（角丸）
+    const cornerRadiusInput = document.getElementById('cornerRadius');
+    const radiusValueDisplay = document.getElementById('radiusValueDisplay');
+
     // 入力要素（テキスト）
     const transparentBgInput = document.getElementById('transparentBg');
     const bgColorInput = document.getElementById('bgColor');
@@ -434,6 +490,12 @@
             currentMode = targetId === 'text-panel' ? 'text' : 'image';
             drawPreview();
         });
+    });
+
+    // 角丸設定イベント
+    cornerRadiusInput.addEventListener('input', () => {
+        radiusValueDisplay.textContent = cornerRadiusInput.value + '%';
+        drawPreview();
     });
 
     // テキスト設定変更イベント
@@ -484,12 +546,44 @@
         // クリア
         context.clearRect(0, 0, size, size);
 
+        // --- 角丸パスの生成ロジック ---
+        const radiusPercent = parseInt(cornerRadiusInput.value);
+        let radius = (size / 2) * (radiusPercent / 50);
+
+        // 枠線の幅を計算（テキストモードで枠線ONの場合のみ）
+        let bw = 0;
+        if (currentMode === 'text' && useBorderInput.checked) {
+            bw = parseInt(borderWidthInput.value) * scale;
+        }
+
+        // 枠線がキャンバスからはみ出さないように描画領域を調整
+        const x = bw / 2;
+        const y = bw / 2;
+        const w = size - bw;
+        const h = size - bw;
+
+        // 丸みが大きすぎて崩れないよう、最大値(幅の半分)で制限
+        radius = Math.min(radius, w / 2);
+
+        // パス（図形の形）を作成
+        context.beginPath();
+        context.moveTo(x + radius, y);
+        context.arcTo(x + w, y, x + w, y + h, radius);
+        context.arcTo(x + w, y + h, x, y + h, radius);
+        context.arcTo(x, y + h, x, y, radius);
+        context.arcTo(x, y, x + w, y, radius);
+        context.closePath();
+
+        // 以降の描画をこのパス(角丸)の内部に制限する
+        context.save();
+        context.clip();
+
         if (currentMode === 'text') {
             const isTransparent = transparentBgInput.checked;
             const useGradient = useGradientInput.checked;
             const useBorder = useBorderInput.checked;
 
-            // 背景描画（透過でない場合）
+            // 1. 背景描画
             if (!isTransparent) {
                 if (useGradient) {
                     const angleRad = gradientAngleInput.value * (Math.PI / 180);
@@ -506,26 +600,24 @@
                     gradient.addColorStop(0, bgColorInput.value);
                     gradient.addColorStop(1, bgColor2Input.value);
                     context.fillStyle = gradient;
-                    context.fillRect(0, 0, size, size);
                 } else {
                     context.fillStyle = bgColorInput.value;
-                    context.fillRect(0, 0, size, size);
                 }
+                context.fill(); // 作成した角丸パスを塗りつぶし
             }
 
-            // テキスト描画
+            // 2. テキスト描画
             const text = iconTextInput.value;
             context.fillStyle = textColorInput.value;
             context.textAlign = 'center';
             context.textBaseline = 'middle';
-            context.font = 'bold 0px sans-serif'; // フォントサイズの初期化
 
             // フォントサイズの動的調整ロジック
             const maxFontSize = parseInt(textSizeInput.value);
-            const maxWidth = size * 0.9; // テキスト幅をアイコン幅の90%までに制限
-
+            const maxWidth = size * 0.9;
             let fontSize = maxFontSize;
             context.font = `bold ${fontSize * scale}px sans-serif`;
+            
             while (context.measureText(text).width > maxWidth && fontSize > 10) {
                 fontSize--;
                 context.font = `bold ${fontSize * scale}px sans-serif`;
@@ -533,15 +625,8 @@
 
             context.fillText(text, size / 2, size / 2);
 
-            // 枠描画
-            if (useBorder) {
-                context.strokeStyle = borderColorInput.value;
-                const width = parseInt(borderWidthInput.value) * scale;
-                context.lineWidth = width;
-                context.strokeRect(width/2, width/2, size - width, size - width); // 枠が内側に収まるように
-            }
-
         } else if (currentMode === 'image') {
+            // 画像モードの描画
             if (uploadedImage) {
                 // 画像を正方形にクロップして描画
                 const imgSize = Math.min(uploadedImage.width, uploadedImage.height);
@@ -560,6 +645,17 @@
                 context.textBaseline = 'middle';
                 context.fillText('No Image', size / 2, size / 2);
             }
+        }
+
+        // クリッピング（切り抜き）を解除
+        context.restore();
+
+        // 3. 枠線の描画（テキストモードかつ枠線ONの場合）
+        // クリッピング解除後に描くことで、枠線が削られずに綺麗に描画されます
+        if (currentMode === 'text' && useBorderInput.checked) {
+            context.strokeStyle = borderColorInput.value;
+            context.lineWidth = bw;
+            context.stroke();
         }
     }
 
