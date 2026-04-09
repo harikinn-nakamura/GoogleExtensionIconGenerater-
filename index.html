@@ -685,7 +685,7 @@
             // base64データURLを取得し、プレフィックスを削除してZIPに追加
             const dataUrl = tempCanvas.toDataURL('image/png');
             const base64Data = dataUrl.split(',')[1];
-            zip.file(`icon_${size}.png`, base64Data, {base64: true});
+            zip.file(`icon${size}.png`, base64Data, {base64: true});
         });
 
         // ZIPを生成してダウンロード
